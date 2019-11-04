@@ -8,6 +8,22 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
 
   const CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN = 'zusatzinformationen';
 
+  private $criteria_fields = array(
+    'medien_typen',
+    'medien_themen',
+    'medien_sonderverteiler',
+    'themeninteressen',
+    'personen_organisationen',
+    'expertinnen',
+    'metaverteiler',
+  );
+
+  private $filter_fields = array(
+    'sprache',
+    'land',
+    'bundesland',
+  );
+
   function __construct(&$formValues) {
     parent::__construct($formValues);
   }
@@ -26,78 +42,100 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       'exclude' => E::ts('Exclude'),
     );
 
-    $criteria_fields = array(
-      'medien_typen',
-      'medien_themen',
-      'medien_sonderverteiler',
-      'themeninteressen',
-      'personen_organisationen',
-      'expertinnen',
-      'metaverteiler',
-    );
-
     $selection_fields = array();
-    foreach ($criteria_fields as $field_name) {
-      $custom_field = CRM_Mods_CustomData::getCustomField(
+    foreach ($this->criteria_fields as $criteria_field_name) {
+      $criteria_field = CRM_Mods_CustomData::getCustomField(
         self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
-        $field_name
+        $criteria_field_name
       );
 
       foreach ($include_exclude as $category => $category_label) {
-        $field_name = $category . '_custom_' . $custom_field['id'];
+        $criteria_field_name = $category . '_custom_' . $criteria_field['id'];
         $form->addSelect(
-          $field_name,
+          $criteria_field_name,
           array(
-            'field' => 'custom_' . $custom_field['id'],
+            'field' => 'custom_' . $criteria_field['id'],
             // Get the label for the custom field, since this is not working
             // correctly in CRM_Core_Form::addSelect().
             'label' => CRM_Core_DAO::getFieldValue(
               'CRM_Core_DAO_CustomField',
-              $custom_field['id'],
+              $criteria_field['id'],
               'label'
             ) . ' (' . $category_label . ')',
             'multiple' => TRUE,
           )
         );
-        $selection_fields[] = $field_name;
+        $selection_fields[] = $criteria_field_name;
       }
     }
 
-    $filter_fields = array();
+    $form->assign('selection', $selection_fields);
 
-    $language_field = CRM_Mods_CustomData::getCustomField(
-      self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
-      'sprache'
-    );
-    foreach ($include_exclude as $category => $category_label) {
-      $filter_fields[] = $form->addSelect(
-        $category . '_sprache',
-        array(
-          'field' => 'custom_' . $language_field['id'],
-          // Get the label for the custom field, since this is not working
-          // correctly in CRM_Core_Form::addSelect().
-          'label' => CRM_Core_DAO::getFieldValue(
-              'CRM_Core_DAO_CustomField',
-              $language_field['id'],
-              'label'
-            ) . ' (' . $category_label . ')',
-          'multiple' => TRUE,
-        )
-      )->getName();
+    $filter_fields = array();
+    foreach ($this->filter_fields as $filter_field_name) {
+      $filter_field = CRM_Mods_CustomData::getCustomField(
+        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
+        $filter_field_name
+      );
+
+      foreach ($include_exclude as $category => $category_label) {
+        $filter_field_name = $category . '_custom_' . $filter_field['id'];
+        $form->addSelect(
+          $filter_field_name,
+          array(
+            'field' => 'custom_' . $filter_field['id'],
+            // Get the label for the custom field, since this is not working
+            // correctly in CRM_Core_Form::addSelect().
+            'label' => CRM_Core_DAO::getFieldValue(
+                'CRM_Core_DAO_CustomField',
+                $filter_field['id'],
+                'label'
+              ) . ' (' . $category_label . ')',
+            'multiple' => TRUE,
+          )
+        );
+        $filter_fields[] = $filter_field_name;
+      }
     }
 
-    // Optionally define default search values
-//    $form->setDefaults(array(
-//      'household_name' => '',
-//      'state_province_id' => NULL,
-//    ));
+    // Add postal code range filter field.
+    $form->add(
+      'text',
+      'postal_code_range_start',
+      E::ts('Postal code range from')
+    );
+    $filter_fields[] = 'postal_code_range_start';
 
-    /**
-     * This array tells the template what elements are part of the search
-     * criteria.
-     */
-    $form->assign('selection', $selection_fields);
+    $form->add(
+      'text',
+      'postal_code_range_end',
+      E::ts('Postal code range to')
+    );
+    $filter_fields[] = 'postal_code_range_end';
+
+    // TODO: Add exclude mailing filter field.
+    $form->add(
+      'select',
+      'mailings',
+      E::ts('Exclude contacts in mailings'),
+      self::getMailings(),
+      FALSE,
+      array(
+        'multiple' => TRUE,
+        'class' => 'crm-select2',
+        'placeholder' => E::ts('- any -')
+      )
+    );
+    $filter_fields[] = 'mailings';
+
     $form->assign('filters', $filter_fields);
+  }
+
+  /**
+   * @return null|string
+   */
+  public function count() {
+    return CRM_Core_DAO::singleValueQuery($this->sql('COUNT(DISTINCT c.id) AS total'));
   }
 
   /**
@@ -124,9 +162,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     // return by reference
     $columns = array(
       E::ts('Contact Id') => 'contact_id',
-      E::ts('Contact Type') => 'contact_type',
-      E::ts('Name') => 'sort_name',
-      E::ts('State') => 'state_province',
+      E::ts('Sort name') => 'sort_name',
     );
     return $columns;
   }
@@ -153,10 +189,8 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    */
   function select() {
     return "
-      contact_a.id           as contact_id  ,
-      contact_a.contact_type as contact_type,
-      contact_a.sort_name    as sort_name,
-      state_province.name    as state_province
+      c.id AS contact_id,
+      c.sort_name AS sort_name
     ";
   }
 
@@ -166,14 +200,20 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    * @return string, sql fragment with FROM and JOIN clauses
    */
   function from() {
-    return "
-      FROM      civicrm_contact contact_a
-      LEFT JOIN civicrm_address address ON ( address.contact_id       = contact_a.id AND
-                                             address.is_primary       = 1 )
-      LEFT JOIN civicrm_email           ON ( civicrm_email.contact_id = contact_a.id AND
-                                             civicrm_email.is_primary = 1 )
-      LEFT JOIN civicrm_state_province state_province ON state_province.id = address.state_province_id
+    $from = "
+      FROM
+        civicrm_contact c
     ";
+
+    // LEFT JOIN custom value table.
+    $custom_group = CRM_Mods_CustomData::getCustomGroup(self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN);
+    $from .= "
+      LEFT JOIN
+        {$custom_group['table_name']} v
+        ON v.entity_id = c.id
+    ";
+
+    return $from;
   }
 
   /**
@@ -183,43 +223,61 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    * @return string, sql fragment with conditional expressions
    */
   function where($includeContactIDs = FALSE) {
-    $params = array();
-    $where = "contact_a.contact_type   = 'Household'";
+    /**
+     * Exclude:
+     * - deleted contacts
+     * - deceased contacts
+     * - contacts opted out of mass mailings
+     * - contacts opted out of e-mail
+     */
+    $where = "c.is_deleted != 1";
+    $where .= " AND c.is_deceased != 1";
+    $where .= " AND c.is_opt_out != 1";
+    $where .= " AND c.do_not_email != 1";
 
-    $count  = 1;
-    $clause = array();
-    $name   = CRM_Utils_Array::value('household_name',
-      $this->_formValues
-    );
-    if ($name != NULL) {
-      if (strpos($name, '%') === FALSE) {
-        $name = "%{$name}%";
+    /**
+     * Exclude criteria fields.
+     */
+    $exclude_clauses = array();
+    foreach ($this->criteria_fields as $exclude_field_name) {
+      $custom_field = CRM_Mods_CustomData::getCustomField(
+        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
+        $exclude_field_name
+      );
+      $values = $this->_formValues['exclude_custom_' . $custom_field['id']];
+      if (!empty($values)) {
+        $padded_values = CRM_Utils_Array::implodePadded($values);
+        $exclude_clauses[] =
+          "(v.{$custom_field['column_name']} IS NULL"
+          . " OR "
+          . "v. {$custom_field['column_name']} NOT LIKE '{$padded_values}')";
       }
-      $params[$count] = array($name, 'String');
-      $clause[] = "contact_a.household_name LIKE %{$count}";
-      $count++;
+    }
+    if (!empty($exclude_clauses)) {
+      $where .= " AND " . implode(" AND ", $exclude_clauses);
     }
 
-    $state = CRM_Utils_Array::value('state_province_id',
-      $this->_formValues
-    );
-    if (!$state &&
-      $this->_stateID
-    ) {
-      $state = $this->_stateID;
+    // Include criteria fields.
+    $include_clauses = array();
+    foreach ($this->criteria_fields as $include_field_name) {
+      $custom_field = CRM_Mods_CustomData::getCustomField(
+        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
+        $include_field_name
+      );
+      $values = $this->_formValues['include_custom_' . $custom_field['id']];
+      if (!empty($values)) {
+        $padded_values = CRM_Utils_Array::implodePadded($values);
+        $include_clauses[] = "v.{$custom_field['column_name']} LIKE '{$padded_values}'";
+      }
     }
-
-    if ($state) {
-      $params[$count] = array($state, 'Integer');
-      $clause[] = "state_province.id = %{$count}";
-    }
-
-    if (!empty($clause)) {
-      $where .= ' AND ' . implode(' AND ', $clause);
+    if (!empty($include_clauses)) {
+      $where .= " AND " . implode(" AND ", $include_clauses);
     }
 
     return $this->whereClause($where, $params);
   }
+
+  // TODO: Add filter fields (include/exclude).
 
   /**
    * Determine the Smarty template for the search screen
@@ -231,12 +289,20 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
   }
 
   /**
-   * Modify the content of each row
-   *
-   * @param array $row modifiable SQL result row
-   * @return void
+   * Retrieves a list of Mailings to be used as select field options.
    */
-  function alterRow(&$row) {
-    $row['sort_name'] .= ' ( altered )';
+  public static function getMailings() {
+    $mailings = civicrm_api3('Mailing', 'get', array(
+      // All mailings during the past 12 months
+      'scheduled_date' => array(
+        '>=' => date_format(date_create()->sub(new DateInterval('P12M')), 'Ymd'),
+      ),
+      'is_completed' => 1,
+      'option.limit' => 0,
+    ));
+    array_walk($mailings['values'], function(&$mailing) {
+      $mailing = $mailing['name'];
+    });
+    return $mailings['values'];
   }
 }

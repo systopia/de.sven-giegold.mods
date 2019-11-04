@@ -36,6 +36,7 @@ class CRM_Mods_CustomData {
 
   /** caches custom field data, indexed by group name */
   protected static $custom_group2name  = NULL;
+  protected static $custom_group_meta_cache = array();
   protected static $custom_group_cache = array();
   protected static $custom_field_cache = array();
 
@@ -464,6 +465,16 @@ class CRM_Mods_CustomData {
     }
   }
 
+  public static function getCustomGroup($custom_group_name) {
+    self::cacheCustomGroupsMeta(array($custom_group_name));
+
+    if (isset(self::$custom_group_meta_cache[$custom_group_name])) {
+      return self::$custom_group_meta_cache[$custom_group_name];
+    } else {
+      return NULL;
+    }
+  }
+
   /**
    * Precache a list of custom groups
    */
@@ -479,6 +490,25 @@ class CRM_Mods_CustomData {
           self::$custom_group_cache[$custom_group_name][$field['name']] = $field;
           self::$custom_group_cache[$custom_group_name][$field['id']]   = $field;
         }
+      }
+    }
+  }
+
+  /**
+   * Cache a list of custom group meta data.
+   *
+   * @param $custom_group_names
+   *
+   * @throws \CiviCRM_API3_Exception
+   */
+  public static function cacheCustomGroupsMeta($custom_group_names) {
+    foreach ($custom_group_names as $custom_group_name) {
+      if (!isset(self::$custom_group_meta_cache[$custom_group_name])) {
+        // set to empty array to indicate our intentions
+        self::$custom_group_meta_cache[$custom_group_name] = civicrm_api3('CustomGroup', 'getsingle', array(
+          'name' => $custom_group_name,
+          'option.limit' => 0,
+        ));
       }
     }
   }
