@@ -113,7 +113,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     );
     $filter_fields[] = 'postal_code_range_end';
 
-    // TODO: Add exclude mailing filter field.
+    // Add exclude mailing filter field.
     $form->add(
       'select',
       'mailings',
@@ -164,6 +164,11 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       E::ts('Contact Id') => 'contact_id',
       E::ts('Sort name') => 'sort_name',
     );
+
+    if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
+      $columns[E::ts('Postal code')] = 'postal_code';
+    }
+
     return $columns;
   }
 
@@ -179,7 +184,21 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    */
   function all($offset = 0, $rowcount = 0, $sort = NULL, $includeContactIDs = FALSE, $justIDs = FALSE) {
     // delegate to $this->sql(), $this->select(), $this->from(), $this->where(), etc.
-    return $this->sql($this->select(), $offset, $rowcount, $sort, $includeContactIDs, NULL);
+    return $this->sql($this->select(), $offset, $rowcount, $sort, $includeContactIDs, $this->groupBy());
+  }
+
+  /**
+   * Construct a GROUP BY clause.
+   *
+   * @return string
+   */
+  function groupBy() {
+    $groupBy = "
+      GROUP BY
+        c.id
+    ";
+
+    return $groupBy;
   }
 
   /**
@@ -188,10 +207,16 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    * @return string, sql fragment with SELECT arguments
    */
   function select() {
-    return "
+    $select = "
       c.id AS contact_id,
       c.sort_name AS sort_name
     ";
+
+    if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
+      $select .= ", address.postal_code AS postal_code";
+    }
+
+    return $select;
   }
 
   /**
@@ -213,6 +238,24 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
         ON v.entity_id = c.id
     ";
 
+    // LEFT JOIN address table (for postal code range comparison).
+    if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
+      $from .= "
+      LEFT JOIN
+        civicrm_address address
+        ON (address.contact_id = c.id AND address.is_primary = 1)
+    ";
+    }
+
+    // LEFT JOIN mailing recipients.
+    if (!empty($this->_formValues['mailings'])) {
+      $from .= "
+        LEFT JOIN
+          civicrm_mailing_recipients recipients
+          ON recipients.contact_id = c.id
+        ";
+    }
+
     return $from;
   }
 
@@ -223,6 +266,8 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    * @return string, sql fragment with conditional expressions
    */
   function where($includeContactIDs = FALSE) {
+    $params = array();
+
     /**
      * Exclude:
      * - deleted contacts
@@ -257,7 +302,9 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       $where .= " AND " . implode(" AND ", $exclude_clauses);
     }
 
-    // Include criteria fields.
+    /**
+     * Include criteria fields.
+     */
     $include_clauses = array();
     foreach ($this->criteria_fields as $include_field_name) {
       $custom_field = CRM_Mods_CustomData::getCustomField(
@@ -274,10 +321,78 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       $where .= " AND " . implode(" AND ", $include_clauses);
     }
 
+    /**
+     * Include filter fields
+     */
+    $include_filter_clauses = array();
+    foreach ($this->filter_fields as $include_filter_field_name) {
+      $custom_field = CRM_Mods_CustomData::getCustomField(
+        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
+        $include_filter_field_name
+      );
+      $values = $this->_formValues['include_custom_' . $custom_field['id']];
+      if (!empty($values)) {
+        $padded_values = CRM_Utils_Array::implodePadded($values);
+        $include_filter_clauses[] = "v.{$custom_field['column_name']} LIKE '{$padded_values}'";
+      }
+    }
+    if (!empty($include_filter_clauses)) {
+      $where .= " AND " . implode(" AND ", $include_filter_clauses);
+    }
+
+    /**
+     * Exclude filter fields
+     */
+    $exclude_filter_clauses = array();
+    foreach ($this->filter_fields as $exclude_filter_field_name) {
+      $custom_field = CRM_Mods_CustomData::getCustomField(
+        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
+        $exclude_filter_field_name
+      );
+      $values = $this->_formValues['exclude_custom_' . $custom_field['id']];
+      if (!empty($values)) {
+        $padded_values = CRM_Utils_Array::implodePadded($values);
+        $exclude_filter_clauses[] = "v.{$custom_field['column_name']} LIKE '{$padded_values}'";
+      }
+    }
+    if (!empty($exclude_filter_clauses)) {
+      $where .= " AND " . implode(" AND ", $exclude_filter_clauses);
+    }
+
+    /**
+     * Add postal code range.
+     *
+     * Taken from @see CRM_Contact_Form_Search_Custom_ZipCodeRange::where()
+     */
+    if (!empty($this->_formValues['postal_code_range_start'])) {
+      $where .= "
+        AND ROUND(address.postal_code) >= %1
+      ";
+      $params[1] = array(trim($this->_formValues['postal_code_range_start']), 'Integer');
+    }
+
+    if (!empty($this->_formValues['postal_code_range_end'])) {
+      $where .= "
+        AND ROUND(address.postal_code) <= %2
+      ";
+      $params[2] = array(trim($this->_formValues['postal_code_range_end']), 'Integer');
+    }
+
+    /**
+     * Add mailing contacts exclusion.
+     */
+    if (!empty($this->_formValues['mailings'])) {
+      $exclude_mailing_ids = implode(',', $this->_formValues['mailings']);
+      $where .= "
+        AND (
+          recipients.mailing_id IS NULL
+          OR recipients.mailing_id NOT IN({$exclude_mailing_ids})
+        )
+      ";
+    }
+
     return $this->whereClause($where, $params);
   }
-
-  // TODO: Add filter fields (include/exclude).
 
   /**
    * Determine the Smarty template for the search screen
