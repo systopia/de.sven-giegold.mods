@@ -35,7 +35,7 @@
       <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
 
       <fieldset>
-        <legend>{ts domain="de.sven-giegold.mods"}Selection{/ts}</legend>
+        <legend>Selektion</legend>
         <table class="form-layout">
             {capture assign="first_selection_field"}1{/capture}
             {foreach from=$selection key=field_name item=field}
@@ -52,7 +52,7 @@
       </fieldset>
 
       <fieldset>
-        <legend>{ts domain="de.sven-giegold.mods"}Filters{/ts}</legend>
+        <legend>Filter</legend>
         <table class="form-layout">
             {foreach from=$filters item=element}
               <tr class="crm-contact-custom-search-form-row-{$element}">

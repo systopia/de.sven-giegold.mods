@@ -185,7 +185,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     // delegate to $this->sql(), $this->select(), $this->from(), $this->where(), etc.
     $sql = $this->sql($this->select(), $offset, $rowcount, $sort, $includeContactIDs, $this->groupBy());
 
-    CRM_Core_Session::setStatus('<pre>' . $sql . '</pre>', E::ts('SQL query'), 'no-popup');
+    // CRM_Core_Session::setStatus('<pre>' . $sql . '</pre>', E::ts('SQL query'), 'no-popup');
 
     return $sql;
   }
@@ -316,7 +316,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
           $include_criteria_clauses = array();
           foreach ($include_values as $include_value) {
             $padded_include_value = CRM_Utils_Array::implodePadded($include_value);
-            $include_criteria_clauses[] = "v.{$criteria_field['column_name']} LIKE '{$padded_include_value}'";
+            $include_criteria_clauses[] = "v.{$criteria_field['column_name']} LIKE '%{$padded_include_value}%'";
           }
           $section_clauses[] = "
           # Include criteria
@@ -332,7 +332,10 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
           $exclude_criteria_clauses = array();
           foreach ($exclude_values as $exclude_value) {
             $padded_exclude_value = CRM_Utils_Array::implodePadded($exclude_value);
-            $exclude_criteria_clauses[] = "v.{$criteria_field['column_name']} NOT LIKE '{$padded_exclude_value}'";
+            $exclude_criteria_clauses[] = "(
+              v.{$criteria_field['column_name']} IS NULL
+              OR v.{$criteria_field['column_name']} NOT LIKE '%{$padded_exclude_value}%'
+            )";
           }
           $section_clauses[] = "
           # Exclude criteria
@@ -383,7 +386,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       if (!empty($values)) {
         foreach ($values as $value) {
           $padded_value = CRM_Utils_Array::implodePadded($value);
-          $include_filter_clauses[] = "v.{$custom_field['column_name']} LIKE '{$padded_value}'";
+          $include_filter_clauses[] = "v.{$custom_field['column_name']} LIKE '%{$padded_value}%'";
         }
       }
     }
@@ -411,7 +414,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
           $padded_value = CRM_Utils_Array::implodePadded($value);
           $exclude_filter_clauses[] = "(
           v.{$custom_field['column_name']} IS NULL
-          OR v.{$custom_field['column_name']} NOT LIKE '{$padded_value}'
+          OR v.{$custom_field['column_name']} NOT LIKE '%{$padded_value}%'
         )";
         }
       }
