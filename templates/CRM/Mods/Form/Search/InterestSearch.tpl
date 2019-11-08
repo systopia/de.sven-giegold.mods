@@ -36,19 +36,24 @@
 
       <fieldset>
         <legend>{ts domain="de.sven-giegold.mods"}Selection{/ts}</legend>
-        <table class="form-layout-compressed">
-            {foreach from=$selection item=element}
-              <tr class="crm-contact-custom-search-form-row-{$element}">
-                <td class="label">{$form.$element.label}</td>
-                <td>{$form.$element.html}</td>
+        <table class="form-layout">
+            {capture assign="first_selection_field"}1{/capture}
+            {foreach from=$selection key=field_name item=field}
+              <tr class="crm-contact-custom-search-form-row-{$field_name}">
+                  <td>{if not $first_selection_field}ODER{/if}</td>
+                {foreach from=$field item=element}
+                  <td class="label">{$form.$element.label}</td>
+                  <td>{$form.$element.html}</td>
+                {/foreach}
               </tr>
+                {capture assign="first_selection_field"}0{/capture}
             {/foreach}
         </table>
       </fieldset>
 
       <fieldset>
         <legend>{ts domain="de.sven-giegold.mods"}Filters{/ts}</legend>
-        <table class="form-layout-compressed">
+        <table class="form-layout">
             {foreach from=$filters item=element}
               <tr class="crm-contact-custom-search-form-row-{$element}">
                 <td class="label">{$form.$element.label}</td>

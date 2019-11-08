@@ -50,9 +50,8 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       );
 
       foreach ($include_exclude as $category => $category_label) {
-        $criteria_field_name = $category . '_custom_' . $criteria_field['id'];
         $form->addSelect(
-          $criteria_field_name,
+          $category . '_custom_' . $criteria_field['id'],
           array(
             'field' => 'custom_' . $criteria_field['id'],
             // Get the label for the custom field, since this is not working
@@ -65,7 +64,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
             'multiple' => TRUE,
           )
         );
-        $selection_fields[] = $criteria_field_name;
+        $selection_fields[$criteria_field_name][] = $category . '_custom_' . $criteria_field['id'];
       }
     }
 
@@ -186,7 +185,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     // delegate to $this->sql(), $this->select(), $this->from(), $this->where(), etc.
     $sql = $this->sql($this->select(), $offset, $rowcount, $sort, $includeContactIDs, $this->groupBy());
 
-    // CRM_Core_Session::setStatus('<pre>' . $sql . '</pre>', E::ts('SQL query'), 'no-popup');
+    CRM_Core_Session::setStatus('<pre>' . $sql . '</pre>', E::ts('SQL query'), 'no-popup');
 
     return $sql;
   }
@@ -198,17 +197,16 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    */
   function groupBy() {
     $groupBy = "
-      GROUP BY
-        contact_id";
+    GROUP BY
+      contact_id";
 
     if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
       $groupBy .= ",
-        postal_code";
+      postal_code";
     }
 
     $groupBy .= "
-    
-    ";
+  ";
 
     return $groupBy;
   }
@@ -220,12 +218,12 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    */
   function select() {
     $select = "
-      c.id AS contact_id,
-      c.sort_name AS sort_name";
+    c.id AS contact_id,
+    c.sort_name AS sort_name";
 
     if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
       $select .= ",
-      address.postal_code AS postal_code";
+    address.postal_code AS postal_code";
     }
 
     $select .= "
@@ -241,38 +239,38 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    */
   function from() {
     $from = "
-      FROM
-        civicrm_contact c
+    FROM
+      civicrm_contact c
     ";
 
     // LEFT JOIN custom value table.
     $custom_group = CRM_Mods_CustomData::getCustomGroup(self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN);
     $from .= "
-      LEFT JOIN
-        {$custom_group['table_name']} v
-        ON v.entity_id = c.id
+    LEFT JOIN
+      {$custom_group['table_name']} v
+      ON v.entity_id = c.id
     ";
 
     // LEFT JOIN address table (for postal code range comparison).
     if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
       $from .= "
-        LEFT JOIN
-          civicrm_address address
-          ON (address.contact_id = c.id AND address.is_primary = 1)
+    LEFT JOIN
+      civicrm_address address
+      ON (address.contact_id = c.id AND address.is_primary = 1)
     ";
     }
 
     // LEFT JOIN mailing recipients.
     if (!empty($this->_formValues['mailings'])) {
       $from .= "
-        LEFT JOIN
-          civicrm_mailing_recipients recipients
-          ON recipients.contact_id = c.id
-        ";
+    LEFT JOIN
+      civicrm_mailing_recipients recipients
+      ON recipients.contact_id = c.id
+    ";
     }
 
     $from .= "
-    ";
+   ";
 
     return $from;
   }
@@ -294,64 +292,83 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
      * - contacts opted out of e-mail
      */
     $where = "
-      c.is_deleted != 1";
-    $where .= "
-      AND c.is_deceased != 1";
-    $where .= "
-      AND c.is_opt_out != 1";
-    $where .= "
-      AND c.do_not_email != 1";
+      c.is_deleted != 1
+      AND c.is_deceased != 1
+      AND c.is_opt_out != 1
+      AND c.do_not_email != 1
+      ";
 
     /**
-     * Include criteria fields.
+     * Sections of include/exclude criteria fields.
      */
-    $include_clauses = array();
-    foreach ($this->criteria_fields as $include_field_name) {
-      $custom_field = CRM_Mods_CustomData::getCustomField(
+    $criteria_clauses = array();
+    foreach ($this->criteria_fields as $criteria_field_name) {
+      $section_clauses = array();
+      $criteria_field = CRM_Mods_CustomData::getCustomField(
         self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
-        $include_field_name
+        $criteria_field_name
       );
-      $values = $this->_formValues['include_custom_' . $custom_field['id']];
-      if (!empty($values)) {
-        foreach ($values as $value) {
-          $padded_value = CRM_Utils_Array::implodePadded($value);
-          $include_clauses[] = "v.{$custom_field['column_name']} LIKE '{$padded_value}'";
+      $include_values = $this->_formValues['include_custom_' . $criteria_field['id']];
+      $exclude_values = $this->_formValues['exclude_custom_' . $criteria_field['id']];
+      if (!empty($include_values) || !empty($exclude_values)) {
+        // This section is to be processed.
+        if (!empty($include_values)) {
+          $include_criteria_clauses = array();
+          foreach ($include_values as $include_value) {
+            $padded_include_value = CRM_Utils_Array::implodePadded($include_value);
+            $include_criteria_clauses[] = "v.{$criteria_field['column_name']} LIKE '{$padded_include_value}'";
+          }
+          $section_clauses[] = "
+          # Include criteria
+          (
+            " . implode("
+            OR ", $include_criteria_clauses) . "
+          )
+          # END Include criteria
+          ";
         }
+
+        if (!empty($exclude_values)) {
+          $exclude_criteria_clauses = array();
+          foreach ($exclude_values as $exclude_value) {
+            $padded_exclude_value = CRM_Utils_Array::implodePadded($exclude_value);
+            $exclude_criteria_clauses[] = "v.{$criteria_field['column_name']} NOT LIKE '{$padded_exclude_value}'";
+          }
+          $section_clauses[] = "
+          # Exclude criteria
+          (
+            " . implode("
+            AND ", $exclude_criteria_clauses) . "
+          )
+          # END Exclude criteria
+          ";
+        }
+
+        $criteria_clauses[] = "
+        # Criteria section {$criteria_field_name}
+        (
+          " . implode("
+          AND ", $section_clauses) . "
+        )
+        # END Criteria section {$criteria_field_name}
+        ";
       }
     }
-    if (!empty($include_clauses)) {
+    if (!empty($criteria_clauses)) {
       $where .= "
-        AND (
+      
+      # Criteria sections
+      AND (
         " . implode("
-          OR ", $include_clauses)
-      . ")";
+        OR ", $criteria_clauses) . "
+      )
+      # END Criteria sections
+      ";
     }
 
-    /**
-     * Exclude criteria fields.
-     */
-    $exclude_clauses = array();
-    foreach ($this->criteria_fields as $exclude_field_name) {
-      $custom_field = CRM_Mods_CustomData::getCustomField(
-        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
-        $exclude_field_name
-      );
-      $values = $this->_formValues['exclude_custom_' . $custom_field['id']];
-      if (!empty($values)) {
-        foreach ($values as $value) {
-          $padded_value = CRM_Utils_Array::implodePadded($value);
-          $exclude_clauses[] = "(
-          v.{$custom_field['column_name']} IS NULL
-          OR v. {$custom_field['column_name']} NOT LIKE '{$padded_value}'
-        )";
-        }
-      }
-    }
-    if (!empty($exclude_clauses)) {
-      $where .= "
-        AND " . implode("
-        AND ", $exclude_clauses);
-    }
+    $where .= "      
+      # Filters
+      ";
 
     /**
      * Include filter fields
@@ -372,8 +389,11 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     }
     if (!empty($include_filter_clauses)) {
       $where .= "
-        AND " . implode("
-        AND ", $include_filter_clauses);
+      # Include filter fields
+      AND " . implode("
+      AND ", $include_filter_clauses) . "
+      # END Include filter fields
+      ";
     }
 
     /**
@@ -398,8 +418,11 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     }
     if (!empty($exclude_filter_clauses)) {
       $where .= "
-        AND " . implode("
-        AND ", $exclude_filter_clauses);
+      # Exclude filter fields
+      AND " . implode("
+      AND ", $exclude_filter_clauses) . "
+      # END Exclude filter fields
+      ";
     }
 
     /**
@@ -409,13 +432,19 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
      */
     if (!empty($this->_formValues['postal_code_range_start'])) {
       $where .= "
-        AND ROUND(address.postal_code) >= %1";
+      # Postal code range start
+      AND ROUND(address.postal_code) >= %1
+      # END Postal code range start
+      ";
       $params[1] = array(trim($this->_formValues['postal_code_range_start']), 'Integer');
     }
 
     if (!empty($this->_formValues['postal_code_range_end'])) {
       $where .= "
-        AND ROUND(address.postal_code) <= %2";
+      # Postal code range start
+      AND ROUND(address.postal_code) <= %2
+      # END Postal code range
+      ";
       $params[2] = array(trim($this->_formValues['postal_code_range_end']), 'Integer');
     }
 
@@ -425,18 +454,22 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     if (!empty($this->_formValues['mailings'])) {
       $exclude_mailing_ids = implode(',', $this->_formValues['mailings']);
       $where .= "
-        AND NOT EXISTS (
-          SELECT
-            mailing_id
-          FROM
-            civicrm_mailing_recipients
-          WHERE
-            contact_id = c.id
-            AND mailing_id IN ({$exclude_mailing_ids})
-        )";
+      # Exclude mailing recipients
+      AND NOT EXISTS (
+        SELECT
+          mailing_id
+        FROM
+          civicrm_mailing_recipients
+        WHERE
+          contact_id = c.id
+          AND mailing_id IN ({$exclude_mailing_ids})
+      )
+      # END Exclude mailing recipients
+      ";
     }
 
     $where .= "
+      # END Filters
     ";
 
     return $this->whereClause($where, $params);
