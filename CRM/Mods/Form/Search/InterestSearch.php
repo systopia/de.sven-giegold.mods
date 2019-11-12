@@ -100,17 +100,10 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     // Add postal code range filter field.
     $form->add(
       'text',
-      'postal_code_range_start',
-      E::ts('Postal code range from')
+      'postal_code',
+      E::ts('Postal code')
     );
-    $filter_fields[] = 'postal_code_range_start';
-
-    $form->add(
-      'text',
-      'postal_code_range_end',
-      E::ts('Postal code range to')
-    );
-    $filter_fields[] = 'postal_code_range_end';
+    $filter_fields[] = 'postal_code';
 
     // Add exclude mailing filter field.
     $form->add(
@@ -164,7 +157,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       E::ts('Sort Name') => 'sort_name',
     );
 
-    if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
+    if (!empty($this->_formValues['postal_code'])) {
       $columns[E::ts('Postal code')] = 'postal_code';
     }
 
@@ -185,7 +178,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     // delegate to $this->sql(), $this->select(), $this->from(), $this->where(), etc.
     $sql = $this->sql($this->select(), $offset, $rowcount, $sort, $includeContactIDs, $this->groupBy());
 
-    // CRM_Core_Session::setStatus('<pre>' . $sql . '</pre>', E::ts('SQL query'), 'no-popup');
+    CRM_Core_Session::setStatus('<pre>' . $sql . '</pre>', E::ts('SQL query'), 'no-popup');
 
     return $sql;
   }
@@ -200,7 +193,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     GROUP BY
       contact_id";
 
-    if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
+    if (!empty($this->_formValues['postal_code'])) {
       $groupBy .= ",
       postal_code";
     }
@@ -221,7 +214,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     c.id AS contact_id,
     c.sort_name AS sort_name";
 
-    if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
+    if (!empty($this->_formValues['postal_code'])) {
       $select .= ",
     address.postal_code AS postal_code";
     }
@@ -252,7 +245,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     ";
 
     // LEFT JOIN address table (for postal code range comparison).
-    if (!empty($this->_formValues['postal_code_range_start']) || !empty($this->_formValues['postal_code_range_end'])) {
+    if (!empty($this->_formValues['postal_code'])) {
       $from .= "
     LEFT JOIN
       civicrm_address address
@@ -378,6 +371,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
      */
     $include_filter_clauses = array();
     foreach ($this->filter_fields as $include_filter_field_name) {
+      $include_filter_field_clauses = array();
       $custom_field = CRM_Mods_CustomData::getCustomField(
         self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
         $include_filter_field_name
@@ -386,8 +380,18 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       if (!empty($values)) {
         foreach ($values as $value) {
           $padded_value = CRM_Utils_Array::implodePadded($value);
-          $include_filter_clauses[] = "v.{$custom_field['column_name']} LIKE '%{$padded_value}%'";
+          $include_filter_field_clauses[] = "v.{$custom_field['column_name']} LIKE '%{$padded_value}%'";
         }
+      }
+      if (!empty($include_filter_field_clauses)) {
+        $include_filter_clauses[] = "
+        # Include filter field {$include_filter_field_name}
+        (
+          " . implode("
+          OR ", $include_filter_field_clauses) . "
+        )
+        # END Include filter field {$include_filter_field_name}
+        ";
       }
     }
     if (!empty($include_filter_clauses)) {
@@ -433,22 +437,35 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
      *
      * Taken from @see CRM_Contact_Form_Search_Custom_ZipCodeRange::where()
      */
-    if (!empty($this->_formValues['postal_code_range_start'])) {
+    if (!empty($this->_formValues['postal_code'])) {
+      $postal_code_clauses = array();
+      foreach (explode(',', $this->_formValues['postal_code']) as $postal_code_range) {
+        list($from, $to) = explode('-', $postal_code_range . '-');
+        $param_count = count($params);
+        $from_operator = (empty($to) ? "=" : ">=");
+        $postal_code_clause = "
+        # Postal code range
+        (
+          ROUND(address.postal_code) {$from_operator} %{$param_count}";
+        $params[$param_count++] = array(trim($from), 'Integer');
+        if (!empty($to)) {
+          $postal_code_clause .= "
+          AND ROUND(address.postal_code) <= %{$param_count}";
+          $params[$param_count++] = array(trim($to), 'Integer');
+        }
+        $postal_code_clause .= "
+        )
+        # END postal code range
+        ";
+        $postal_code_clauses[] = $postal_code_clause;
+      }
       $where .= "
-      # Postal code range start
-      AND ROUND(address.postal_code) >= %1
-      # END Postal code range start
+      # Postal code ranges
+      AND (" . implode("
+        OR ", $postal_code_clauses) . "
+      )
+      # END postal code ranges
       ";
-      $params[1] = array(trim($this->_formValues['postal_code_range_start']), 'Integer');
-    }
-
-    if (!empty($this->_formValues['postal_code_range_end'])) {
-      $where .= "
-      # Postal code range start
-      AND ROUND(address.postal_code) <= %2
-      # END Postal code range
-      ";
-      $params[2] = array(trim($this->_formValues['postal_code_range_end']), 'Integer');
     }
 
     /**
