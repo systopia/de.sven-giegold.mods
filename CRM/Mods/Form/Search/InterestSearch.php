@@ -127,7 +127,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    * @return null|string
    */
   public function count() {
-    return CRM_Core_DAO::singleValueQuery($this->sql('COUNT(DISTINCT c.id) AS total'));
+    return CRM_Core_DAO::singleValueQuery($this->sql('COUNT(DISTINCT contact_a.id) AS total'));
   }
 
   /**
@@ -211,8 +211,8 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
    */
   function select() {
     $select = "
-    c.id AS contact_id,
-    c.sort_name AS sort_name";
+    contact_a.id AS contact_id,
+    contact_a.sort_name AS sort_name";
 
     if (!empty($this->_formValues['postal_code'])) {
       $select .= ",
@@ -233,7 +233,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
   function from() {
     $from = "
     FROM
-      civicrm_contact c
+      civicrm_contact contact_a
     ";
 
     // LEFT JOIN custom value table.
@@ -241,7 +241,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     $from .= "
     LEFT JOIN
       {$custom_group['table_name']} v
-      ON v.entity_id = c.id
+      ON v.entity_id = contact_a.id
     ";
 
     // LEFT JOIN address table (for postal code range comparison).
@@ -249,7 +249,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       $from .= "
     LEFT JOIN
       civicrm_address address
-      ON (address.contact_id = c.id AND address.is_primary = 1)
+      ON (address.contact_id = contact_a.id AND address.is_primary = 1)
     ";
     }
 
@@ -258,7 +258,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       $from .= "
     LEFT JOIN
       civicrm_mailing_recipients recipients
-      ON recipients.contact_id = c.id
+      ON recipients.contact_id = contact_a.id
     ";
     }
 
@@ -285,10 +285,10 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
      * - contacts opted out of e-mail
      */
     $where = "
-      c.is_deleted != 1
-      AND c.is_deceased != 1
-      AND c.is_opt_out != 1
-      AND c.do_not_email != 1
+      contact_a.is_deleted != 1
+      AND contact_a.is_deceased != 1
+      AND contact_a.is_opt_out != 1
+      AND contact_a.do_not_email != 1
       ";
 
     /**
@@ -481,7 +481,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
         FROM
           civicrm_mailing_recipients
         WHERE
-          contact_id = c.id
+          contact_id = contact_a.id
           AND mailing_id IN ({$exclude_mailing_ids})
       )
       # END Exclude mailing recipients
