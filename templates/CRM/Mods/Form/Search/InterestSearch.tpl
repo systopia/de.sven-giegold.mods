@@ -36,23 +36,46 @@
 
       <fieldset>
         <legend>Selektion</legend>
-        <table class="form-layout">
-            {capture assign="first_selection_field"}1{/capture}
-            {foreach from=$selection key=field_name item=field}
+        <p class="description">Wählen Sie für jedes der folgenden Kriterien,
+          welche Kontakte zum Suchergebnis hinzugefügt werden sollen. Für jedes
+          Feld können Einschlusskriterien (mindestens einer der Werte muss
+          übereinstimmen) und Ausschlusskriterien (keiner der Werte darf
+          übereinstimmen) ausgewählt werden.</p>
+        <p class="description">Die Kombination von Ein- und
+          Ausschlusskriterien bildet ein neues Selektionssegment, das dem
+          Suchergebnis hinzugefügt wird. Jedes Selektionssegment fügt also einen
+          weiteren Satz von Kontakten dem Suchergebnis hinzu
+          (ODER-Verknüpfung). Um Werte aus dem gesamten Suchergebnis
+          auszuschließen, verwenden Sie das jeweilige Feld im Abschnitt
+          "Filter".</p>
+
+          {capture assign="first_selection_field"}1{/capture}
+          {foreach from=$selection key=field_name item=field}
+            <table class="form-layout">
+                {if not $first_selection_field}
+                  <caption style="text-align: left; font-weight: bold;">zusätzlich Kontakte mit folgenden Kriterien:</caption>
+                {/if}
               <tr class="crm-contact-custom-search-form-row-{$field_name}">
-                  <td>{if not $first_selection_field}ODER{/if}</td>
-                {foreach from=$field item=element}
-                  <td class="label">{$form.$element.label}</td>
-                  <td>{$form.$element.html}</td>
-                {/foreach}
+                  {foreach from=$field item=element}
+                    <td class="label">{$form.$element.label}</td>
+                    <td>{$form.$element.html}</td>
+                  {/foreach}
               </tr>
                 {capture assign="first_selection_field"}0{/capture}
-            {/foreach}
-        </table>
+            </table>
+          {/foreach}
+
       </fieldset>
 
       <fieldset>
         <legend>Filter</legend>
+        <p class="description">Das im Abschnitt "Selektion" kombinierte
+          Suchergebnis kann mit den folgenden Feldern gefiltert werden.
+          "Einschließen"-Felder behalten nur Kontakte, bei denen mindestens
+          einer der ausgewählten Werte übereinstimmt. "Ausschließen"-Felder
+          entfernen alle Kontakte, bei denen mindestens einer der ausgewählten
+          Werte übereinstimmt. Die Selektionsfelder sind hier erneut zum
+          Ausschließen verfügbar.</p>
         <table class="form-layout">
             {foreach from=$filters item=element}
               <tr class="crm-contact-custom-search-form-row-{$element}">

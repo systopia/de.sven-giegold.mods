@@ -97,6 +97,31 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       }
     }
 
+    // Add criteria fields as exclude filters.
+    foreach ($this->criteria_fields as $criteria_filter_field_name) {
+      $criteria_filter_field = CRM_Mods_CustomData::getCustomField(
+        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
+        $criteria_filter_field_name
+      );
+
+      $criteria_filter_field_name = 'exclude_criteria_custom_' . $criteria_filter_field['id'];
+      $criteria_filter_element = $form->addSelect(
+        $criteria_filter_field_name,
+        array(
+          'field' => 'custom_' . $criteria_filter_field['id'],
+          // Get the label for the custom field, since this is not working
+          // correctly in CRM_Core_Form::addSelect().
+          'label' => CRM_Core_DAO::getFieldValue(
+              'CRM_Core_DAO_CustomField',
+              $criteria_filter_field['id'],
+              'label'
+            ) . ' (' . E::ts('Exclude') . ')',
+          'multiple' => TRUE,
+        )
+      );
+      $filter_fields[] = $criteria_filter_field_name;
+    }
+
     // Add postal code range filter field.
     $form->add(
       'text',
@@ -394,6 +419,8 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
         ";
       }
     }
+
+    // Compose criteria clauses.
     if (!empty($include_filter_clauses)) {
       $where .= "
       # Include filter fields
@@ -423,6 +450,26 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
         }
       }
     }
+
+    // Exclude criteria filter fields.
+    foreach ($this->criteria_fields as $exclude_criteria_filter_field_name) {
+      $custom_field = CRM_Mods_CustomData::getCustomField(
+        self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
+        $exclude_criteria_filter_field_name
+      );
+      $values = $this->_formValues['exclude_criteria_custom_' . $custom_field['id']];
+      if (!empty($values)) {
+        foreach ($values as $value) {
+          $padded_value = CRM_Utils_Array::implodePadded($value);
+          $exclude_filter_clauses[] = "(
+          v.{$custom_field['column_name']} IS NULL
+          OR v.{$custom_field['column_name']} NOT LIKE '%{$padded_value}%'
+        )";
+        }
+      }
+    }
+
+    // Compose filter clauses.
     if (!empty($exclude_filter_clauses)) {
       $where .= "
       # Exclude filter fields
