@@ -16,6 +16,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     'personen_organisationen',
     'expertinnen',
     'metaverteiler',
+    'Aktivit_ten',
   );
 
   private $filter_fields = array(
