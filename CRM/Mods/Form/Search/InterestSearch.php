@@ -17,12 +17,15 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
     'expertinnen',
     'metaverteiler',
     'Aktivit_ten',
+    'land',
+    'bundesland',
   );
 
   private $filter_fields = array(
     'sprache',
     'land',
     'bundesland',
+    'medien_typen',
   );
 
   function __construct(&$formValues) {
@@ -100,6 +103,10 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
 
     // Add criteria fields as exclude filters.
     foreach ($this->criteria_fields as $criteria_filter_field_name) {
+      // Only if it's not an explicit filter.
+      if (in_array($criteria_filter_field_name, $this->filter_fields)) {
+        continue;
+      }
       $criteria_filter_field = CRM_Mods_CustomData::getCustomField(
         self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
         $criteria_filter_field_name
