@@ -55,7 +55,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
 
       foreach ($include_exclude as $category => $category_label) {
         $form->addSelect(
-          $category . '_custom_' . $criteria_field['id'],
+          'criteria_' . $category . '_custom_' . $criteria_field['id'],
           array(
             'field' => 'custom_' . $criteria_field['id'],
             // Get the label for the custom field, since this is not working
@@ -68,7 +68,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
             'multiple' => TRUE,
           )
         );
-        $selection_fields[$criteria_field_name][] = $category . '_custom_' . $criteria_field['id'];
+        $selection_fields[$criteria_field_name][] = 'criteria_' . $category . '_custom_' . $criteria_field['id'];
       }
     }
 
@@ -82,7 +82,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
       );
 
       foreach ($include_exclude as $category => $category_label) {
-        $filter_field_name = $category . '_custom_' . $filter_field['id'];
+        $filter_field_name = 'filter_' . $category . '_custom_' . $filter_field['id'];
         $form->addSelect(
           $filter_field_name,
           array(
@@ -334,8 +334,8 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
         self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
         $criteria_field_name
       );
-      $include_values = $this->_formValues['include_custom_' . $criteria_field['id']];
-      $exclude_values = $this->_formValues['exclude_custom_' . $criteria_field['id']];
+      $include_values = $this->_formValues['criteria_include_custom_' . $criteria_field['id']];
+      $exclude_values = $this->_formValues['criteria_exclude_custom_' . $criteria_field['id']];
       if (!empty($include_values) || !empty($exclude_values)) {
         // This section is to be processed.
         if (!empty($include_values)) {
@@ -409,7 +409,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
         self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
         $include_filter_field_name
       );
-      $values = $this->_formValues['include_custom_' . $custom_field['id']];
+      $values = $this->_formValues['filter_include_custom_' . $custom_field['id']];
       if (!empty($values)) {
         foreach ($values as $value) {
           $padded_value = CRM_Utils_Array::implodePadded($value);
