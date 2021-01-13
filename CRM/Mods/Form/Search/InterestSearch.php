@@ -447,7 +447,7 @@ class CRM_Mods_Form_Search_InterestSearch extends CRM_Contact_Form_Search_Custom
         self::CUSTOM_GROUP_NAME_ZUSATZINFORMATIONEN,
         $exclude_filter_field_name
       );
-      $values = $this->_formValues['exclude_custom_' . $custom_field['id']];
+      $values = $this->_formValues['filter_exclude_custom_' . $custom_field['id']];
       if (!empty($values)) {
         foreach ($values as $value) {
           $padded_value = CRM_Utils_Array::implodePadded($value);
