@@ -1,0 +1,161 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function in_array\(\) requires parameter \#3 to be set\.$#'
+			identifier: function.strict
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Cannot access offset ''values'' on array\|int\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Cannot call method sub\(\) on DateTime\|false\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Construct empty\(\) is not allowed\. Use more strict comparison\.$#'
+			identifier: empty.notAllowed
+			count: 20
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:__construct\(\) has parameter \$formValues with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:all\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:columns\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:from\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:getMailings\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:select\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:templateFile\(\) should return null but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Method CRM_Mods_Form_Search_InterestSearch\:\:where\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^PHPDoc tag @return has invalid value \(array, keys are printable column headers and values are SQL column names\)\: Unexpected token ",", expected TOKEN_HORIZONTAL_WS at offset 66 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '''
+				#^PHPDoc tag @return has invalid value \(mixed; NULL or array with keys\:
+				  \- summary\: string
+				  \- total\: numeric\)\: Unexpected token ";", expected TOKEN_HORIZONTAL_WS at offset 66 on line 4$#
+			'''
+			identifier: phpDoc.parseError
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^PHPDoc tag @return has invalid value \(string, sql fragment with FROM and JOIN clauses\)\: Unexpected token ",", expected TOKEN_HORIZONTAL_WS at offset 61 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^PHPDoc tag @return has invalid value \(string, sql fragment with SELECT arguments\)\: Unexpected token ",", expected TOKEN_HORIZONTAL_WS at offset 63 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^PHPDoc tag @return has invalid value \(string, sql fragment with conditional expressions\)\: Unexpected token ",", expected TOKEN_HORIZONTAL_WS at offset 98 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^PHPDoc tag @return has invalid value \(string, sql\)\: Unexpected token ",", expected TOKEN_HORIZONTAL_WS at offset 235 on line 9$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^PHPDoc tag @return has invalid value \(string, template path \(findable through Smarty template path\)\)\: Unexpected token ",", expected TOKEN_HORIZONTAL_WS at offset 85 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Parameter \#6 \$groupBy of method CRM_Contact_Form_Search_Custom_Base\:\:sql\(\) expects null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Property CRM_Mods_Form_Search_InterestSearch\:\:\$criteria_fields has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Property CRM_Mods_Form_Search_InterestSearch\:\:\$filter_fields has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: CRM/Mods/Form/Search/InterestSearch.php
+
+		-
+			message: '#^Function mods_civicrm_config\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: mods.php
+
+		-
+			message: '#^Function mods_civicrm_config\(\) has parameter \$config with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: mods.php
+
+		-
+			message: '#^Function mods_civicrm_enable\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: mods.php
+
+		-
+			message: '#^Function mods_civicrm_install\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: mods.php
