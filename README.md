@@ -1,44 +1,36 @@
-# de.sven-giegold.mods
+# Sven Giegold Modifications
 
-![Screenshot](/images/screenshot.png)
+CiviCRM customisations for sven-giegold.de.
 
-(*FIXME: In one or two paragraphs, describe what the extension does and why one would download it. *)
-
-The extension is licensed under [AGPL-3.0](LICENSE.txt).
+The extension adds a custom contact search ("Suche nach Interessen") that
+filters contacts by the custom fields stored in the `zusatzinformationen`
+custom group — media types, topics, regions and other interest criteria.
+Each criterion can be used as an include or exclude filter; the search also
+supports a postal code range and excludes contacts that received a mailing
+within the past twelve months.
 
 ## Requirements
 
-* PHP v5.6+
-* CiviCRM (*FIXME: Version number*)
+- CiviCRM >= 5.45
+- PHP >= 8.1
+- A `zusatzinformationen` custom group with the interest-related custom fields
+  the search expects
+- The `legacycustomsearches` core extension (CiviCRM ships the custom search
+  framework as a separate extension since 5.x)
 
-## Installation (Web UI)
+## Installation
 
-This extension has not yet been published for installation via the web UI.
-
-## Installation (CLI, Zip)
-
-Sysadmins and developers may download the `.zip` file for this extension and
-install it with the command-line tool [cv](https://github.com/civicrm/cv).
-
-```bash
-cd <extension-dir>
-cv dl de.sven-giegold.mods@https://github.com/FIXME/de.sven-giegold.mods/archive/master.zip
-```
-
-## Installation (CLI, Git)
-
-Sysadmins and developers may clone the [Git](https://en.wikipedia.org/wiki/Git) repo for this extension and
-install it with the command-line tool [cv](https://github.com/civicrm/cv).
+Install via the CiviCRM Extension browser, or from the command line:
 
 ```bash
-git clone https://github.com/FIXME/de.sven-giegold.mods.git
 cv en mods
 ```
 
-## Usage
+## Configuration
 
-(* FIXME: Where would a new user navigate to get started? What changes would they see? *)
+No configuration screen. The custom search is registered automatically and
+appears under Search » Custom Searches » Suche nach Interessen.
 
-## Known Issues
+## License
 
-(* FIXME *)
+This extension is licensed under [AGPL-3.0](LICENSE.txt).
